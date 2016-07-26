@@ -1,0 +1,142 @@
+---
+title: "Codebook"
+author: "Nathan Martinez"
+date: "July 23, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r include=F}
+#importing all the data
+X_train<-read.table("~/RWD/UCI HAR Dataset/train/X_train.txt")
+subject_train<-read.table("~/RWD/UCI HAR Dataset/train/subject_train.txt")
+y_train<-read.table("~/RWD/UCI HAR Dataset/train/y_train.txt")
+
+X_test<-read.table("~/RWD/UCI HAR Dataset/test/X_test.txt")
+subject_test<-read.table("~/RWD/UCI HAR Dataset/test/subject_test.txt")
+y_test<-read.table("~/RWD/UCI HAR Dataset/test/y_test.txt")
+
+#rename the obvious variables
+names(subject_train)[1]<-"subject"
+names(subject_test)[1]<-"subject"
+names(y_train)[1]<-"activity"
+names(y_test)[1]<-"activity"
+
+#merge into test and train sets
+require(dplyr)
+train<-bind_cols(subject_train,y_train,X_train)
+test<-bind_cols(subject_test,y_test,X_test)
+
+#merge into full data set
+full<-bind_rows(train,test)
+full<-full %>% arrange(subject,activity)
+
+#renaming activities
+activity_labels<-read.table("~/RWD/UCI HAR Dataset/activity_labels.txt",stringsAsFactors = FALSE)
+act_labs<-activity_labels[,2]
+full$activity<-ifelse(full$activity==1,act_labs[1],
+                      ifelse(full$activity==2,act_labs[2],
+                             ifelse(full$activity==3,act_labs[3],
+                                    ifelse(full$activity==4,act_labs[4],
+                                           ifelse(full$activity==5,act_labs[5],act_labs[6])))))
+
+#renaming features
+features<-read.table("~/RWD/UCI HAR Dataset/features.txt",stringsAsFactors = FALSE)
+colnames(full)[3:563]<-features[,2]
+
+#extracting only mean and std related variables
+keep<-grep("Mean|mean|std",colnames(full))
+full<-full[,c(1,2,keep)]
+
+#descriptively naming variables
+colnames(full)<-gsub("mean\\(\\)|mean","Mean",colnames(full))
+colnames(full)<-gsub("std\\(\\)|std","Std",colnames(full))
+colnames(full)<-gsub("Freq\\(\\)","Frequency",colnames(full))
+colnames(full)<-gsub("^t","Time",colnames(full))
+colnames(full)<-gsub("^f","Frequency",colnames(full))
+colnames(full)<-gsub("Acc","Accelerometer",colnames(full))
+colnames(full)<-gsub("Mag","Magnitude",colnames(full))
+colnames(full)<-gsub("tBody","TimeBody",colnames(full))
+colnames(full)<-gsub("BodyBody","Body",colnames(full))
+colnames(full)<-gsub("Gyro","Gyroscope",colnames(full))
+
+#getting mean() for each variable
+maindata<-data.frame()
+for(i in unique(full$subject)){
+      tempdata<-data.frame()
+      for(j in unique(full$activity)){
+            prep<-full %>% filter(subject==i&activity==j)
+            means<-prep[1,]
+            for(k in 3:ncol(prep)){
+                  means[,k]<-mean(prep[,k])
+            }
+            tempdata<-bind_rows(tempdata,means)
+      }
+      maindata<-bind_rows(maindata,tempdata)
+}
+
+#making new tidy data set with mean for each variable per person per activity
+write.csv(maindata,file="tidy_run_analysis.csv")
+```
+
+#Codebook for Getting and Cleaning Data Final Project
+
+###The Data
+In this project, we were tasked with cleaning up a messy data set containing measurements from a Samsung smartphone gyroscope/accelerometer on 30 different individuals' movements while performing 6 different activities (walking, walking upstairs, walking downstairs, sitting, standing, and lying down).
+
+The measurments for each variable were split into two data sets: `X_train.txt` and `X_test.txt`. The data for the subjects performing each activity and the activities being performed were in the data sets `subject_train.txt`, `subject_test.txt`, `y_train.txt`, and `y_test.txt`. The variable names were in a file called `features.txt`, and the activity names were in a file called `activity_labels.txt`.
+
+First, the two data sets `X_train.txt` and `X_test.txt` had to be imported, and the data for the subjects performing each activity and the activities being performed had to be imported and appended to each data set. Then, the two data sets were merged into one full data set containing all of the data, after which the variable names were imported and added onto the data set as well as the activity labels.
+
+###Transformations Performed in run_analysis.R
+In importing the data and transforming it into its final form (`tidy_run_analysis.csv`), several steps were taken which I have outlined below:
+
+* **Import test and training sets.** In this step, I imported all of the data into R.
+* **Add subject and activity columns to test and training sets.** In this step, I added subject and activity columns to both the test and training sets. The subject and activity data was also imported from the original set of data sets, as it was given there.
+* **Merge test and training sets into full data set.** In this step, I used the `dplyr` function `bind_rows` and `arrange` to create the full data set with both the test and training sets, ordered by subject.
+* **Add descriptive names to activity names.** In this step, I used an `ifelse` command to take the activity names from the file given in the main data source and use them as the activity names in my data set in R.
+* **Discard all columns that are not measurements of the mean or std.** In this step, I discarded all of the columns that were not measurements of the mean or standard deviation.
+* **Rename all variables so that they are descriptive.** In this step, I renamed all of the variable names so that they were more descriptive and less jargon-ic. This was done by using the function `gsub` to find keywords in the variable names and exchange them for their full-word counterparts (e.g. taking `Gyro` and turning it into `Gyroscop`, etc.).
+* **Create new tidy data set with mean of each variable for each subject and activity.** In this step, I used a three-part `for` loop (I know, not the best method at all) to take the mean of each variable for each subject and each activity and put it into a new data set that contained only the mean of each variable for each activity for each subject.
+* **Save new tidy data set to a .csv file.** In this step, I used the function `write.csv` to write a .csv file with the new tidy data set containing only the mean of each variable for each activity for each subject.
+
+Above is just a brief summary of the steps I took to get from the raw, untouched data to the polished, final data sets. Please take a look at the file titled `run_analysis.R` to get a thorough look at precisely how each transformation was performed.
+
+###Updated Codebook/Variable Information
+For the original codebook and variable information, please go to  [link](http://archive.ics.uci.edu/ml/datasets/Human+Activity+Recognition+Using+Smartphones).
+
+Below is a list of the new variable names:
+
+```{r}
+colnames(full[-(1:2),])
+```
+
+Understanding each variable is simple; their names are very descriptive and include keywords that indicate what each variable captures. I will expand on those keywords here:
+
+**Prefixes:**
+The following two words, when at the beginning of a variable name, have the following significance:
+
+* *Time* this keyword means that that variable's units are measured in time (seconds)
+* *Frequency* this keyword means that that variable is a measurement of frequency (hertz)
+* *angle* this keyword means that the variable is an angle between two vectors, with the two vectors listed after the word *angle*
+
+**Measurement Tools:**
+The following two words, when used in a variable's name, indicate what tool was used to capture that variable's measurement:
+
+* *Accelerometer* this keyword means that the variable was captured using the Samsung's accelerometer
+* *Gyroscope* this keyword means that the variable was captured using the Samsung's gyroscope
+
+**Std and Mean:**
+The following two keywords denote between a measurement that is an average (mean) and a measurement that is a standard deviation (std):
+
+* *Mean* this variable is the mean of its measurement
+* *Std* this variable is the standard deviation of its measurement
+
+**Others:**
+Below are various other variable keywords that did not fit into the previous categories:
+
+* *Jerk* this variable is a measurement of jerk (the derivative of acceleration with respect to time)
+* *Body* this variable is a measurement taken from the person's body
+* *Gravity* this variable is a measurement of the effect of gravity
+* *Magnitude* this variable is an absolute value measurment
