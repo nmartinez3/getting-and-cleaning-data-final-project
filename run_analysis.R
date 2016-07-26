@@ -1,11 +1,11 @@
 #importing all the data
-X_train<-read.table("~/RWD/UCI HAR Dataset/train/X_train.txt")
-subject_train<-read.table("~/RWD/UCI HAR Dataset/train/subject_train.txt")
-y_train<-read.table("~/RWD/UCI HAR Dataset/train/y_train.txt")
+X_train<-read.table("./UCI HAR Dataset/train/X_train.txt")
+subject_train<-read.table("./UCI HAR Dataset/train/subject_train.txt")
+y_train<-read.table("./UCI HAR Dataset/train/y_train.txt")
 
-X_test<-read.table("~/RWD/UCI HAR Dataset/test/X_test.txt")
-subject_test<-read.table("~/RWD/UCI HAR Dataset/test/subject_test.txt")
-y_test<-read.table("~/RWD/UCI HAR Dataset/test/y_test.txt")
+X_test<-read.table("./UCI HAR Dataset/test/X_test.txt")
+subject_test<-read.table("./UCI HAR Dataset/test/subject_test.txt")
+y_test<-read.table("./UCI HAR Dataset/test/y_test.txt")
 
 #rename the obvious variables
 names(subject_train)[1]<-"subject"
@@ -67,4 +67,4 @@ for(i in unique(full$subject)){
 }
 
 #making new tidy data set with mean for each variable per person per activity
-write.csv(maindata,file="tidy_run_analysis.csv")
+write.table(maindata,file="tidy_run_analysis.txt",row.names = FALSE)
